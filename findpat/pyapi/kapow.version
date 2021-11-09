@@ -1,0 +1,5 @@
+FOO {
+	global: initkapow;
+		Py_InitModule4_64;
+	local: *;
+};

@@ -1,0 +1,96 @@
+CFLAGS=-pedantic -std=c99 -Wall -Werror -O2
+LDFLAGS=-lm
+OPTFLAGS=-fprofile-use
+CXX=g++
+CC=gcc
+LC_ALL=C
+export LC_ALL
+
+REVISION=$(shell ./evalrev)
+CFLAGS+= -DSVNREVISION=$(REVISION) -Ialgo/ -Ilib/ -Icommon/ -I.
+OBJS=
+
+# Enable DEBUG?
+CFLAGS+= -D_DEBUG -g -ggdb
+
+# Enable Profiling?
+#CFLAGS+= -pg
+#LDFLAGS+= -pg
+
+# Enable psort?
+#CFLAGS+= -DBWT_PSORT
+#LDFLAGS+= -lpthread
+#OBJS+= psort.o
+
+# Enable logging of pz_malloc and pz_free?
+#CFLAGS+= -D_DEBUG_LOG_MALLOC=1
+
+# Enable using '~' as a separator
+#CFLAGS+= -D_ENABLE_LCP_SEPARATOR=1 -D_LCP_SEPARATOR="'~'"
+
+# Enable code coverage?
+#CFLAGS+= -ftest-coverage -fprofile-arcs
+#LDFLAGS+= -lgcov -fprofile-arcs
+
+# Support for GZIP input files
+CFLAGS+= -DGZIP
+LDFLAGS+= -lz
+
+TOOLS=p2zip biop2zip findpat findpatkpw copkpw runbwt runobwt runtags \
+	runmrs runmmrs runcop runlongpat cover2 kapow stats runlcp runkinv \
+	patoccs filecop calck filetags runbacksearch chunksearch runsasearch
+TEST=test test_comprsa test_interv stress
+UTILES=att genfasta multifasta defasta
+
+ALGO=arit_enc.o bittree.o bwt.o bwt_joint.o comprsa.o cop.o enc.o huffman.o \
+	lcp.o longpat.o lzw.o mmrs.o mrs.o mrs_nolcp.o mtf.o output_callbacks.o \
+	ranksel.o rle.o rmqbit.o rmq.o kinvlcp.o interv.o lpat.o backsearch.o \
+    sa_search.o
+LIBS=libp2zip.o kpw.o kpwapi.o kpw_check.o
+COMM=bitstream.o common.o tiempos.o
+
+### You shouldn't need to touch anything beyond this point ###
+
+BINS:=$(TOOLS:%=bin/%) $(TEST:%=bin/%) $(UTILES:%=bin/%)
+OBJS+=$(ALGO:%=algo/%) $(LIBS:%=lib/%) $(COMM:%=common/%)
+TOOLSOBJS:=$(TOOLS:%=tools/%.o)
+TESTOBJS:=$(TEST:%=test/%.o)
+UTILESOBJS:=$(UTILES:%=utiles/%.o)
+SRCS:=$(OBJS:.o=.c)
+MAINSRCS=$(MAINOBJS:.o=.c)
+
+OPTMAIN=biop2zip-o biop2zip-p
+
+all: $(BINS)
+
+todo:
+	grep --color -A2 -B2 -n -E "TOD(O): .*" * -R
+
+opt: $(OPTMAIN)
+biop2zip-o: biop2zip.c $(SRCS)
+	$(CC) -o $@ $^ $(CFLAGS) $(OPTFLAGS) $(LDFLAGS)
+
+biop2zip-p: biop2zip.c $(SRCS)
+	$(CC) -o $@ $^ $(CFLAGS) $(OPTFLAGS) $(LDFLAGS) -fprofile-generate
+
+bin/%:
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+
+# Dependencias automágicas
+-include deps
+deps: tools/depcloser Makefile
+	$(CC) $(CFLAGS) -MM common/*.c algo/*.c lib/*.c tools/*.c test/*.c utiles/*.c | sed "s/^\([^:]\+\): \([a-z]\+\)/\2\/\1: \2/" > $@
+	@for f in $(TOOLS:%=tools/%) $(TEST:%=test/%) $(UTILES:%=utiles/%); do echo bin/`basename $$f`: $$f.o "\$$(OBJS)"; done >> $@
+	tools/depcloser $@
+
+Makefile: Makefile.in configure
+	./configure
+	make $*
+	exit
+
+configure: configure.in
+	autoconf
+	autoheader
+
+clean:
+	rm -rf $(OBJS) $(TOOLSOBJS) $(TESTOBJS) $(UTILESOBJS) $(BINS) $(OPTMAIN) deps

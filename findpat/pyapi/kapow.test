@@ -1,0 +1,163 @@
+>>> import kapow
+>>> a = kapow.Array(10,2)
+>>> for i in range(10): a[i] = i
+... 
+>>> print a
+[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+>>> for i in range(10): print a[i]
+... 
+0
+1
+2
+3
+4
+5
+6
+7
+8
+9
+>>> a[10]
+Traceback (most recent call last):
+  ...
+IndexError: index 10 out of range [0,10)
+>>> a[-1]
+9L
+>>> a[-11]       # doctest: +ELLIPSIS
+Traceback (most recent call last):
+  ...
+IndexError: index ... out of range [0,10)
+>>> a.resize(8)               # doctest: +ELLIPSIS
+<kapow.Array(n=8, fldsz=2, refs=3) object at 0x...>
+>>> print a
+[0, 1, 2, 3, 4, 5, 6, 7]
+>>> a.elemsize
+2L
+>>> a.resize(8,4)             # doctest: +ELLIPSIS
+<kapow.Array(n=8, fldsz=4, refs=3) object at 0x...>
+>>> a.elemsize
+4L
+>>> print a
+[0, 1, 2, 3, 4, 5, 6, 7]
+>>> a[0] = 1234567890
+>>> a.resize(7,2)             # doctest: +ELLIPSIS
+<kapow.Array(n=7, fldsz=2, refs=3) object at 0x...>
+>>> a.elemsize
+2L
+>>> print a
+[65535, 1, 2, 3, 4, 5, 6]
+
+>>> b = a.bind(10,4)
+Traceback (most recent call last):
+  ...
+KapowArrayError: The binded region (start=0, len=10, fldsz=4) runs beyond the original region (len=7, fldsz=2).
+>>> b = a.bind(14,1)
+>>> b.binded == a
+True
+>>> 
+
+>>> b.resize(20)
+Traceback (most recent call last):
+  ...
+KapowArrayError: Cannot resize a binded array. unbind() it first.
+>>> b.resize(0)
+Traceback (most recent call last):
+  ...
+KapowArrayError: Cannot resize a binded array. unbind() it first.
+>>> b.clean()
+>>>
+
+### INVERT TEST ###
+
+>>> w = kapow.Array(10, 4)
+>>> for i in range(10): w[i] = (i+1)%10
+... 
+>>> print w
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 0]
+>>> wi = kapow.Array()
+>>> w.inverse(wi)  # doctest: +ELLIPSIS
+<kapow.Array(n=10, fldsz=4, refs=3) object at 0x...>
+>>> print wi
+[9, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+>>> print w.inverse()
+[9, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+### BWT TEST ###
+
+>>> c = kapow.Array()
+>>> kapow.bwt('Mississipi', c) # doctest: +ELLIPSIS
+(0, ...)
+>>> print c
+ipssMissii
+>>> print c.max(),c.min()
+115 77
+
+### LCP y KLCP ###
+
+>>> s = 'Mississippi\000'
+>>> p = kapow.Array()
+>>> r = kapow.Array()
+>>> dst = kapow.Array()
+>>> kapow.bwt(s, dst, p, r) # doctest: +ELLIPSIS
+(1, ...)
+>>> print p
+[1, 5, 11, 9, 4, 10, 8, 3, 7, 6, 2, 0]
+>>> print r
+[11, 0, 10, 7, 4, 1, 9, 8, 6, 3, 5, 2]
+>>> h = kapow.Array()
+>>> _ = kapow.lcp(s, h, p, r)
+>>> print h
+[0, 0, 1, 1, 4, 0, 1, 0, 2, 1, 3, 0]
+>>> kapow.klcp(h)                    # doctest: +ELLIPSIS
+(7.783333333333333, ...)
+>>> print h
+[0, 0, 0, 0, 1, 1, 1, 1, 2, 3, 4, 0]
+>>> print h.max(),h.min()
+4 0
+>>> 
+
+### SA_SEARCH TEST ###
+
+>>> llcp = kapow.Array()
+>>> rlcp = kapow.Array()
+>>> _ = kapow.lcp(s, h, p, r)
+>>> _ = kapow.sa_mm_init(h, llcp, rlcp)
+
+>>> print h
+[0, 0, 1, 1, 4, 0, 1, 0, 2, 1, 3, 0]
+>>> print map(int, llcp)
+[0, 0, 0, 1, 1, 0, 0, 1, 0, 2, 1, 0]
+>>> print map(int, rlcp)
+[0, 0, 1, 1, 4, 0, 0, 0, 1, 1, 3, 0]
+>>> 
+>>> kapow.sa_search(s, r, 'ssi')                   # doctest: +ELLIPSIS
+(10, 12, ...)
+>>> kapow.sa_mm_search(s, r, llcp, rlcp, 'ssi')    # doctest: +ELLIPSIS
+(10, 12, ...)
+>>> kapow.sa_search(s, r, 'i')                     # doctest: +ELLIPSIS
+(2, 6, ...)
+>>> kapow.sa_mm_search(s, r, llcp, rlcp, 'i')      # doctest: +ELLIPSIS
+(2, 6, ...)
+
+
+### MMAP TEST ###
+
+>>> a = kapow.Array()
+>>> s = 'mississippi river.'
+>>> open('kapow.mmap', 'wb').write(s)
+>>> f = open('kapow.mmap', 'rb')
+>>> a.bindFrom(f)
+>>> print repr(str(a))
+'mississippi river.'
+>>> print repr(a)                                 # doctest: +ELLIPSIS
+<kapow.Array(n=18, fldsz=1, refs=2) object at ...>
+>>> b = a.bind(start=5, n=7)
+>>> print repr(b)                                 # doctest: +ELLIPSIS
+<kapow.Array(n=7, fldsz=1, refs=2) object at ...>
+>>> print repr(str(b))
+'ssippi '
+>>> del b
+>>> a[11] = '@'
+>>> print repr(str(a))
+'mississippi@river.'
+
+### KPW FILE TEST ###
