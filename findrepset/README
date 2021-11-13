@@ -1,0 +1,35 @@
+COMPILATION INSTRUCTIONS
+
+Use make all to produce both tools. Use make <toolname> to produce each of
+them separately.
+
+USAGE INSTRUCTIONS
+
+There are two tools: runcop and filecop. They are mainly intended to test and
+try the algorithms. You may run over large data files with the existing tools,
+but the output is not nicely factorized, so it may take a long time.
+Please feel welcome to add your own code using the algorithms coded in the
+source files (check filecop.c and runcop.c to see how to be used) or contact us
+(contact information in the associated publications or in
+http://kapow.dc.uba.ar).
+
+Both tools work similarly. runcop uses strings passed as parameters as input
+for the algorithm (better to try small cases and see how it works) and filecop
+uses files. Both tools take a list of strings/files as parameters, and run the
+algorithms over those inputs. If -c is passed (before or after the input list)
+it will report supermaximal repeats in the set. Otherwise it will report
+exclusive repeats. By default it reports supermaximal exclusive repeats, and
+it reports maximal exclusive repeats if -nm is passed as parameter. The
+parameter -ml followed by an integer may optionally be passed, to state the
+smallest size of a repeat should have to be reported (it is 1 by default).
+filecop has additional useful options (more verbose error output and time
+calculations). For additional help on tool usage, run it without any
+parameters.
+
+The output only lists the repeats, one per line (avoid using files with end of
+line markers in them, because the output will be confusing). It does not give
+information on the occurrences of the string, although the coded algorithms do
+report that information. You can easily modify the tool so it gives some more
+information if you need it, or create your own tool. Once again,
+feel free to contact us for help using the algorithms for experiments that need
+non-trivial adjustments.
